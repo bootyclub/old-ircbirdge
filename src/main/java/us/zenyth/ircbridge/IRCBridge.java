@@ -468,7 +468,7 @@ public class IRCBridge extends JavaPlugin {
             }
 
             String alias = commandLabel.toLowerCase();
-            if (alias.startsWith("irc")) {
+            if (alias.startsWith("irc") || alias.startsWith("whoirc")) {
                 connection.who_mode = IRC;
             } else if (   alias.equals("who")
                        || alias.contains("players")) {
@@ -1039,7 +1039,7 @@ private class KickHandler implements Listener {
         } else if (name.toUpperCase().endsWith("|" + console_tag + "|MC")) {
             name = convertNameWithoutColor(name);
             PermissionUser user = PermissionsEx.getPermissionManager().getUser(name);
-            return ChatColor.translateAlternateColorCodes('&', user.getPrefix() + name);
+            return ChatColor.translateAlternateColorCodes('&', user.getPrefix() + name + user.getSuffix());
         } else if (name.endsWith("|Console")) {
             return plugin.console_color + "Console";
         } else if (name.endsWith("Serv")) {
