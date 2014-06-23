@@ -194,7 +194,7 @@ public class IRCBridge extends JavaPlugin {
 	try {
 	    config.load(dataFile);
 	} catch (Exception e) {
-	    Bukkit.getLogger().warning("[PChat] Error loading IRCBridge Configuration!");
+            log.log(Level.INFO("[{0}] Error loading IRCBridge configuration!", pdf.getName()));
 	}
 
         log_pms = config.getBoolean("log.pms", false);
@@ -270,7 +270,7 @@ public class IRCBridge extends JavaPlugin {
         try {
 	    config.save(dataFile);
 	} catch (Exception e) {
-	    Bukkit.getLogger().warning("[PChat] Error saving IRCBridge Configuration! Aborting save!");
+	    log.log(Level.INFO("[{0}] Unable to save the configuration!", pdf.getName()));
 	    Bukkit.getLogger().info(e.getCause().getMessage());
 	}
     }
@@ -419,6 +419,7 @@ public class IRCBridge extends JavaPlugin {
                 message += args[i] + " ";
             }
             connection.say("/me " + message);
+            // Will implement this at a later date. connection.sendAction(plugin, message);
         } else if (cmd.equalsIgnoreCase("list")) {
             if (!sender.hasPermission("ircbridge.list")) {
                 sender.sendMessage(ChatColor.RED + "You don't have permission."
