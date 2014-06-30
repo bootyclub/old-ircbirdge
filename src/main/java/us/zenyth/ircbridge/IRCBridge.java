@@ -44,12 +44,11 @@ import org.jibble.pircbot.User;
 import ru.tehkode.permissions.PermissionManager;
 import ru.tehkode.permissions.PermissionUser;
 import ru.tehkode.permissions.bukkit.PermissionsEx;
-import us.zenyth.ircenhancer.IRCEnhancer;
 
 
 public class IRCBridge extends JavaPlugin {
     Logger message_log = Logger.getLogger("ircbridge.pms");
-    Logger log = Logger.getLogger("Minecraft");
+    public Logger log = Logger.getLogger("Minecraft");
     FileHandler message_file = null;
     ConsoleCommandSender console = Bukkit.getServer().getConsoleSender();
     PluginDescriptionFile pdf;
@@ -73,8 +72,6 @@ public class IRCBridge extends JavaPlugin {
     HashSet<String> big_channels;
     HashSet<String> official_channels;
     HashMap<String,String> permission_channels;
-
-    public IRCEnhancer enhancer;
 
     public PermissionsEx permsPlugin;
     public PermissionManager perms;
@@ -116,7 +113,6 @@ public class IRCBridge extends JavaPlugin {
         bridge.quitAll();
         bridge = null;
         perms = null;
-        enhancer = null;
 
         if (message_file != null) {
             message_log.removeHandler(message_file);
@@ -156,11 +152,6 @@ public class IRCBridge extends JavaPlugin {
             perms = PermissionsEx.getPermissionManager();
         }
 
-        enhancer = (IRCEnhancer) pm.getPlugin("IRCEnhancer");
-        if (enhancer == null) {
-            log.log(Level.INFO,"[{0}" + "] " + "IRCEnhancer not found!", pdf.getName());
-            log.log(Level.INFO,"[{0}" + "] " + "Enhancements will not be available.", pdf.getName());
-        }
         log.log(Level.INFO,"[{0}" + "] " + "IRCBridge version {1} by {2} has been disabled.", new Object[]{pdf.getName(), pdf.getVersion(), pdf.getAuthors()});
 
         configure();
@@ -194,7 +185,7 @@ public class IRCBridge extends JavaPlugin {
 	try {
 	    config.load(dataFile);
 	} catch (Exception e) {
-            log.log(Level.INFO("[{0}] Error loading IRCBridge configuration!", pdf.getName()));
+            log.log(Level.INFO,"[{0}" + "] " + " Error loading IRCBridge configuration!", pdf.getName());
 	}
 
         log_pms = config.getBoolean("log.pms", false);
@@ -270,7 +261,7 @@ public class IRCBridge extends JavaPlugin {
         try {
 	    config.save(dataFile);
 	} catch (Exception e) {
-	    log.log(Level.INFO("[{0}] Unable to save the configuration!", pdf.getName()));
+	    log.log(Level.INFO,"[{0}" + "] " + "Unable to save the configuration! Check your write permissions.");
 	    Bukkit.getLogger().info(e.getCause().getMessage());
 	}
     }
