@@ -9,8 +9,8 @@ I have simply cleaned up this plugin and added some things.
 - Better IRCd support.
 - Native prefixes and suffixes for both IRC and MC users. (PermissionsEx is required, vault will be coming soon.)
 - Native bukkit "JavaPlugin" support, only dependency required is PermissionsEx
-
+- Cleaner: Plugin has been seperated into classes.
 ##To Do:
 + Add vault support.
 + Convert to PircBotX.
-+ Seperate the plugin into classes. (WIP)
++ ~~Seperate the plugin into classes. (WIP)~~
