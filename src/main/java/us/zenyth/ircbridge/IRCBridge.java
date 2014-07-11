@@ -2,7 +2,10 @@
 package us.zenyth.ircbridge;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,8 +52,11 @@ import ru.tehkode.permissions.bukkit.PermissionsEx;
 public class IRCBridge extends JavaPlugin {
     Logger message_log = Logger.getLogger("ircbridge.pms");
     public Logger log = Logger.getLogger("Minecraft");
+    public IRCBridge plugin;
     FileHandler message_file = null;
     ConsoleCommandSender console = Bukkit.getServer().getConsoleSender();
+    public static String format;
+    private NickListener nListener = new NickListener(this);
     PluginDescriptionFile pdf;
     boolean log_pms;
 
@@ -61,7 +67,6 @@ public class IRCBridge extends JavaPlugin {
     String default_channel;
     String console_channel;
     String console_format;
-    String format;
 
     // Server connection info.
     String server_address;
@@ -74,6 +79,7 @@ public class IRCBridge extends JavaPlugin {
     HashSet<String> watchers;
     HashSet<String> official_channels;
     HashMap<String,String> permission_channels;
+    
 
     public PermissionsEx permsPlugin;
     public PermissionManager perms;
@@ -82,6 +88,7 @@ public class IRCBridge extends JavaPlugin {
     public Bridge bridge;
     public IRCEvents events;
     private IRCConnection connection;
+    private Configuration configuration;
     private String name;
     private long startup_time;
     private boolean shutting_down = false;
@@ -90,7 +97,7 @@ public class IRCBridge extends JavaPlugin {
     public static final int MINECRAFT = 1;
     public static final int IRC = 2;
     
-    private File dataFile;
+    File dataFile;
     private long last_complaint_time;
 
       public boolean beingQuiet() {
@@ -130,7 +137,6 @@ public class IRCBridge extends JavaPlugin {
         super.onEnable();
         shutting_down = false;
         startup_time = System.currentTimeMillis();
-
         try {
             message_file = new FileHandler("pms.log", true);
             message_file.setFormatter(new TinyFormatter());
@@ -144,23 +150,27 @@ public class IRCBridge extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
         permsPlugin = (PermissionsEx) pm.getPlugin("PermissionsEx");
         if (permsPlugin == null) {
-            log.log(Level.INFO,"[{0}" + "] " + "PermissionsEx not found!", pdf.getName());
-            log.log(Level.INFO,"[{0}" + "] " + "Group based colors and or channels will not be available.", pdf.getName());
+            log.log(Level.INFO,"[{0}" + "] " + "PermissionsEx not found!", new Object[]{pdf.getName()});
+            log.log(Level.INFO,"[{0}" + "] " + "Group based colors and or channels will not be available.", new Object[]{pdf.getName()});
         }
         else if (permsPlugin != null) {
-            log.log(Level.INFO,"[{0}" + "] " + "PermissionsEx found, enabling intergration!", pdf.getName());
+            log.log(Level.INFO,"[{0}" + "] " + "PermissionsEx found, enabling intergration!", new Object[]{pdf.getName()});
             perms = PermissionsEx.getPermissionManager();
         }
 
         log.log(Level.INFO,"[{0}" + "] " + "IRCBridge version {1} by {2} has been disabled.", new Object[]{pdf.getName(), pdf.getVersion(), pdf.getAuthors()});
 
-        configure();
-
+    
+ 
         bridge = new Bridge(this);
         events = new IRCEvents(this);
+        configuration = new Configuration(this);
 
         pm.registerEvents(bridge, this);
         pm.registerEvents(events, this);
+        
+        configuration.configure();
+        
         bridge.connectAll(getServer().getOnlinePlayers());
         /************ COMMANDS ************/
         // Join
@@ -185,86 +195,6 @@ public class IRCBridge extends JavaPlugin {
         this.getCommand("irckick").setExecutor(new Commands(this));
         // Reconnect
         this.getCommand("reconnect").setExecutor(new Commands(this));
-    }
-
-
-    public void configure() {
-	YamlConfiguration config = new YamlConfiguration();
-	try {
-	    config.load(dataFile);
-	} catch (Exception e) {
-            log.log(Level.INFO,"[{0}" + "] " + " Error loading IRCBridge configuration!", pdf.getName());
-	}
-
-        log_pms = config.getBoolean("log.pms", false);
-
-        // |Console will be appended to this.
-        console_id = config.getString("console.id", "The");
-        console_tag = config.getString("console.tag", "NA");
-
-        // Channel setup.
-        console_channel = config.getString("channels.console", "#console");
-        default_channel = config.getString("channels.default", "#minecraft");
-        autojoin_channels = config.getStringList("channels.autojoin");
-        big_channels = new HashSet<String>(config.getStringList("channels.big"));
-        watchers = new HashSet<String>(config.getStringList("players.watchers"));
-
-        permission_channels = new HashMap<String,String>();
-        Set<String> channelPermissions = config.getConfigurationSection("channels.permissions").getKeys(false);
-	List<String> permissions;
-	if (channelPermissions != null) {
-	    permissions = Arrays.asList(channelPermissions.toArray(new String[0]));
-	    if(permissions == null) {
-		config.set("channels.permissions.badass", "#badass");
-		permissions = new Vector<String>();
-		permissions.add("badass");
-	    }
-	} else {
-	    config.set("channels.permissions.badass", "#badass");
-	    permissions = new Vector<String>();
-	    permissions.add("badass");
-	}
-
-        // Record and register the permissions for permission-based channels.
-        PluginManager pm = getServer().getPluginManager();
-        for (String permission : permissions) {
-            String channel = config.getString("channels.permissions."
-                                              + permission);
-            permission_channels.put(permission, channel);
-            pm.addPermission(new Permission("ircbridge." + permission,
-                                            "Allows access to " + channel,
-                                            PermissionDefault.OP));
-        }
-
-        // The console channel, default channel, autojoin channels, and
-        // permission-based channels are considered official by default, and
-        // apply IRC-based nick colors.
-        Vector<String> default_official = new Vector<String>();
-        default_official.add(console_channel);
-        default_official.add(default_channel);
-        for (String channel : autojoin_channels) {
-            default_official.add(channel);
-        }
-        for (String channel : permission_channels.values()) {
-            default_official.add(channel);
-        }
-
-        official_channels = new HashSet<String>(config.getStringList("channels.official"));
-
-        console_format = config.getString("console.format", "&dConsole").replaceAll("(&([a-f0-9]))", "\u00A7$2");
-
-        // Server connection info.
-        server_address = config.getString("server.address", "localhost");
-        server_port = config.getInt("server.port", 6667);
-        server_pass = config.getString("server.password", "");
-        webirc_pass = config.getString("server.webirc_password", "");
-
-        try {
-	    config.save(dataFile);
-	} catch (Exception e) {
-	    log.log(Level.INFO,"[{0}" + "] " + "Unable to save the configuration! Check your write permissions.");
-	    Bukkit.getLogger().info(e.getCause().getMessage());
-	}
     }
 
     public void logMessage(String message) {
@@ -296,4 +226,21 @@ public class IRCBridge extends JavaPlugin {
         }
 
 }
+       public String format(String player)
+   {
+     try
+     {
+         Player p = getServer().getPlayer(player);
+       return this.nListener.formatName(p);
+     }
+     catch (NullPointerException e)
+     {
+       try
+       {
+          Player p;
+         return player; } catch (NullPointerException ex) {
+       }
+     }
+    return player;
+    }
 }

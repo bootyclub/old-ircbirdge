@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Vector;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -20,7 +21,8 @@ import ru.tehkode.permissions.bukkit.PermissionsEx;
       public IRCConnection(IRCBridge instance) {
           this.plugin = instance;
       }
-
+        public IRCEvents events;
+        public static String format = "";
         public String my_name = null;
         public String speaking_to;
 
@@ -375,7 +377,6 @@ import ru.tehkode.permissions.bukkit.PermissionsEx;
             return "";
         }
       }
-
         public String convertName(String name, boolean officialChannel) {
             IRCConnection connection = plugin.bridge.connections.get(name);
            // if (enhancer != null) {
@@ -394,9 +395,9 @@ import ru.tehkode.permissions.bukkit.PermissionsEx;
             return ChatColor.translateAlternateColorCodes('&', user.getPrefix() + name + user.getSuffix());
         // Try syncing.
         } else if (name.toUpperCase().endsWith("|MC")) {
-            name = convertNameWithoutColor(name);
+            name = plugin.format(convertNameWithoutColor(name));
             PermissionUser user = PermissionsEx.getPermissionManager().getUser(name);
-            return ChatColor.translateAlternateColorCodes('&', user.getPrefix() + name + user.getSuffix());
+            return ChatColor.translateAlternateColorCodes('&', user.getPrefix() + plugin.format(name) + user.getSuffix());
         // Format the console.
         } else if (name.endsWith("|Console")) {
             return plugin.console_format;
